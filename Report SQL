@@ -1,0 +1,1 @@
+select sum(rd.score),sum(que.weightage),que.chaper_id from result_details rd,questions que where test_id=params[: id] and que.id=rd.question_id group_by(que.chapter_id)
