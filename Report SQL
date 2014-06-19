@@ -5,5 +5,12 @@ score report
 select avg(r.score) as avg_score,max(r.score) as max_score,t.total_marks as tot_marks,count(unique r.user_id) as students_appeared from results r,tests t where t.id=r.test_id and r.test_id=params[:id]
 
 Student rank:
-
+select r.user_id, u.user_name, r.score, c.name,dense_rank() over(partition by c.id order by r.score),dense_rank() over(order by r.score)
+  from results r, centres c, users u
+ where r.test_id = params :id
+   and u.id = r.user_id
+   and u.centre_id = c.id
+   
+   
+   
 
