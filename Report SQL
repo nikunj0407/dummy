@@ -1,1 +1,9 @@
-select sum(rd.score),sum(que.weightage),que.chaper_id from result_details rd,questions que where test_id=params[: id] and que.id=rd.question_id group_by(que.chapter_id)
+chapterwise Report:
+select avg(rd.score),sum(que.weightage),que.chaper_id from result_details rd,questions que where test_id=params[: id] and que.id=rd.question_id group_by(que.chapter_id)
+
+score report
+select avg(r.score) as avg_score,max(r.score) as max_score,t.total_marks as tot_marks,count(unique r.user_id) as students_appeared from results r,tests t where t.id=r.test_id and r.test_id=params[:id]
+
+Student rank:
+
+
