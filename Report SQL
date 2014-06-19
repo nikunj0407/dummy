@@ -10,7 +10,9 @@ select r.user_id, u.user_name, r.score, c.name,dense_rank() over(partition by c.
  where r.test_id = params :id
    and u.id = r.user_id
    and u.centre_id = c.id
-   
+
+top 5 students with marks:
+select r.user_id, u.user_name, r.score,r.obj_score,r.sub_score,c.name,dense_rank() over(order by r.score) order by r.score desc limit 5
    
    
 
