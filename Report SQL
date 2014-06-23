@@ -15,5 +15,4 @@ top 5 students with marks:
 select r.user_id, u.user_name, r.score,r.obj_score,r.sub_score,c.name,dense_rank() over(order by r.score) order by r.score desc limit 5
    
    
-
- awk: 0602-592 String  cannot contain a newline character. The source line is 1.
+Distribution of students over marks:
