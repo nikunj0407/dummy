@@ -22,3 +22,4 @@ total number of sudents giving test:
 select count(*) from results where test_id=:id
 
 top 5 mistakes
+select question_id,sum(score),question_type,que.statement,que.weightage, from result_details rd,questions que,options optn where test_id=:id group by question_id order by score asc limit 5
