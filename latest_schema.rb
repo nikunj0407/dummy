@@ -11,11 +11,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20140610141126) do
+ActiveRecord::Schema.define(version: 20140622122443) do
 
   create_table "centres", force: true do |t|
     t.string   "name",         null: false
     t.integer  "institute_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "chapters", force: true do |t|
+    t.integer  "number",     null: false
+    t.string   "name",       null: false
+    t.string   "standard",   null: false
     t.datetime "created_at"
     t.datetime "updated_at"
   end
@@ -70,14 +78,15 @@ ActiveRecord::Schema.define(version: 20140610141126) do
   end
 
   create_table "result_details", force: true do |t|
-    t.string   "question_type",              null: false
+    t.string   "question_type",                null: false
     t.string   "answer",        default: ""
     t.integer  "score",         default: 0
-    t.integer  "question_id",                null: false
-    t.integer  "user_id",                    null: false
-    t.integer  "result_id",                  null: false
+    t.integer  "question_id",                  null: false
+    t.integer  "user_id",                      null: false
+    t.integer  "result_id",                    null: false
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.boolean  "is_checked",    default: true
   end
 
   create_table "results", force: true do |t|
@@ -98,20 +107,21 @@ ActiveRecord::Schema.define(version: 20140610141126) do
   end
 
   create_table "tests", force: true do |t|
-    t.string   "name",                           null: false
-    t.boolean  "is_published",   default: false
-    t.boolean  "is_over",        default: false
+    t.string   "name",                                  null: false
+    t.boolean  "is_published",          default: false
+    t.boolean  "is_over",               default: false
     t.integer  "created_by"
     t.integer  "marked_over_by"
     t.integer  "published_by"
-    t.integer  "total_marks",                    null: false
-    t.integer  "passing_marks",                  null: false
-    t.integer  "time_hrs",                       null: false
-    t.integer  "time_mins",                      null: false
-    t.integer  "institute_id",                   null: false
+    t.integer  "total_marks",                           null: false
+    t.integer  "passing_marks",                         null: false
+    t.integer  "time_hrs",                              null: false
+    t.integer  "time_mins",                             null: false
+    t.integer  "institute_id",                          null: false
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.string   "standard",                       null: false
+    t.string   "standard",                              null: false
+    t.boolean  "is_checking_completed", default: false
   end
 
   create_table "users", force: true do |t|
