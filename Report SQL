@@ -18,4 +18,7 @@ select r.user_id, u.user_name, r.score,r.obj_score,r.sub_score,c.name,dense_rank
 Distribution of students over marks:
 select count(r.user_id),r.score from results r where test_id=:id
 
+total number of sudents giving test:
+select count(*) from results where test_id=:id
+
 top 5 mistakes
