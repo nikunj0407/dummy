@@ -23,4 +23,4 @@ exceptn_id
 fields u asked for:emp_name,sectn,sub_sectn,amt
 
 Query:
-select e.name,ee.amt,ex.sectn,ex,sub_sctn from Employee e,Investment_delaration inv,Employee_Id_Exception ee,Exception ex where e.id='your_emp_id' and e.id=inv.emp_id and inv.id=ee.inv_declartn_id and ee.exception_id=ex.id
+select e.name,ee.amt,ex.sectn,ex.sub_sctn from Employee e,Investment_delaration inv,Employee_Id_Exception ee,Exception ex where e.id='your_emp_id' and e.id=inv.emp_id and inv.id=ee.inv_declartn_id and ee.exception_id=ex.id
