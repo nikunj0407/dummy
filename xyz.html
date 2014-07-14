@@ -1,0 +1,61 @@
+ AmCharts.makeChart("marks_distribution_div", {
+            "type": "serial",
+            "theme": "none",
+            "pathToImages": "http://www.amcharts.com/lib/3/images/",
+
+            "dataProvider":[{
+                "date": 1,
+                "value": 5
+            }, {
+                "date": 2,
+                "value": 15
+            }, {
+                "date": 3,
+                "value": 13
+            }, {
+                "date": 4,
+                "value": 17
+            }, {
+                "date": 7,
+                "value": 15
+            }, {
+                "date": 9,
+                "value": 19
+            } ],
+            "valueAxes": [{
+                "integersOnly": true,
+                "axisAlpha": 0,
+                "dashLength": 4,
+                "position": "left"
+            }],
+            "graphs": [{
+                "bulletSize": 14,
+                "customBullet": "http://www.amcharts.com/lib/3/images/star.png",
+                "customBulletField": "customBullet",
+                "valueField": "value"
+            }],
+            "marginTop": 20,
+            "marginRight": 20,
+            "marginLeft": 40,
+            "marginBottom": 20,
+            "chartCursor": {graphBulletSize:1.5},
+            "autoMargins": false,
+            // "dataDateFormat": "YYYY-MM-DD",
+            "categoryField": "date",
+            "categoryAxis": {
+                // "parseDates": true,
+                "axisAlpha": 0,
+                "gridAlpha": 0,
+                "inside": true,
+                "tickLength": 0,
+                "equalSpacing" :false
+            },
+            "exportConfig": {
+                "menuTop": "20px",
+                "menuRight": "20px",
+                "menuItems": [{
+                    "icon": 'http://www.amcharts.com/lib/3/images/export.png',
+                    "format": 'png'
+                }]
+            }
+        });
