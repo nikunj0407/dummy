@@ -1,0 +1,508 @@
+1.3.2	Proposed design of Web Services Client
+
+ On click of Validate button, on the Interest details page, interest computation and statement generation will happen.
+The communication between Ivision EJB and the Web services component, will happen through REST web services client.
+
+•	What is REST ?
+REST stands for Representational State Transfer. (It is sometimes spelled "ReST".) It relies on a stateless, client-server, cacheable communications protocol -- and in virtually all cases, the HTTP protocol is used.
+REST is an architecture style for designing networked applications. The idea is that, rather than using complex mechanisms such as CORBA, RPC or SOAP to connect between machines, simple HTTP is used to make calls between machines.
+RESTful applications use HTTP requests to post data (create and/or update), read data (e.g., make queries), and delete data. Thus, REST uses HTTP for all four CRUD (Create/Read/Update/Delete) operations.
+REST is a lightweight alternative to mechanisms like RPC (Remote Procedure Calls) and Web Services (SOAP, WSDL, et al.).
+Despite being simple, REST is fully-featured; there's basically nothing you can do in Web Services that can't be done with a RESTful architecture.
+•	Following code snippet will be put in the method xmlInterestAmountRetrieval() of GetInterest.java, to make  a REST call to the Web services module.
+
+Following code snippet will be put in the method xmlInterestAmountRetrieval() of GetInterest.java, to make  a REST call to the Web services module.
+
+public static BusinessResponse xmlInterestAmountRetrieval(BusinessRequest brEntry)
+		throws IVisionException {
+
+		XStream xstream = new XStream(new XppDriver(new XmlFriendlyReplacer("$",
+				"_")));
+		userContext.toXML();
+
+// Interest XML string
+		String reqInts = xstream.toXML(interest);
+		System.out.println(reqInts);
+		
+		
+
+// Creating configuration
+DefaultConfig config = new DefaultConfig();
+		
+		IvisionClient client = DefaultClient.create(config);
+		
+
+// Interest XML string
+client.execute(reqInts);
+}
+
+IvisionClient.java
+		public String execute(String input){
+		
+// Making web service call
+
+HttpEntity<String> entity = new HttpEntity<String>(input,config.getHeaders());
+		
+		ResponseEntity<String> respPst = restTemplate.exchange(getUrl(), HttpMethod.POST, entity, String.class);
+		
+/* The URL will be configurable in a properties file
+for eg, the URL will be http://localhost:9081/IVisionInterest_WebSrvc/webService/interest/compute*/
+
+		return respPst.getBody();
+	}
+
+IVisionInterest_WebSrvc:
+This is the Web Services Component
+
+ Here, HttpEntity Represents an HTTP request or response entity, consisting of headers and body.
+The HttpEntity is set with HttpHeaders and the body is set with the Interest xml.
+
+restTemplate.exchange  method: 
+•	Executes the HTTP method to the given URI template, writing the given request entity to the request, and returns the response as ResponseEntity.
+•	This method is used to exchange the interest inputs to Web services and obtain the output.
+		
+1.3.3	Proposed design of Web Services 
+The web service call from Ivision, as explained above, will be an HTTP request, as below:
+
+http://<URL>:<port>/IVisionInterest_WebSrvc/webService/interest/compute
+
+	The call will go to InterestServiceController.java, contained in the web services.
+
+	The class is mapped to /interest and the method computeDetails() is mapped to /compute.
+
+@RequestMapping("/interest")
+@Controller
+public class InterestServiceController {
+
+@RequestMapping(method = RequestMethod.POST,value = "/compute",headers="Accept=*/*")
+
+		public @ResponseBody ModelAndView computeDetails(@RequestBody  Interest reqObj, ModelMap model) {
+		
+		System.out.println(reqObj.getAdvn_pymt_date());
+		
+		Interest respObj = intrestService.computeInterest(reqObj);
+
+		return new ModelAndView("interestdetails", "object", respObj);
+}
+
+
+
+1.3.4	 Proposed design of InterestComputation.jar
+This is a common component for the Model layer and batches
+The design pattern used is Strategy pattern.
+
+Here, CalculationMethodStrategy is a strategy and we have multiple implementations of this strategy, based on calculation method: 
+
+1)	Calculation360MethodStrategy.java
+2)	Calculation365MethodStrategy.java
+3)	CalculationEnglishInclusiveMethodStrategy.java
+
+4)	CalculationGermanInclusiveMethodStrategy.java
+5)	CalculationGermanMethodStrategy.java
+6)	CalculationInternationalInclusiveMethodStrategy
+
+The implementation to be called, is decided at runtime, based on the input parameters passed.
+
+Based on different transaction scenarios, the Strategy will be set in the Context.
+And based on the strategy passed, the implementation for that strategy will be called.
+
+	ComputeInterest.java
+
+The calculateInterest() method is called from respective Strategy implementation classes
+Based on strategy implementation n.o of days in year are passed.
+
+Following is the proposed Algorithm based on following formula
+
+Interest amount = principal amount * interest number of days *   
+
+
+public static BigDecimal getInterestAmount(BigDecimal osAmount, int tenor, int daysInAYear, Float intRate )
+	{
+		
+		LOGGER.info(InterestConstant.ENTER+className+".getInterestAmount()");
+		
+		LOGGER.info("OS Amount " + osAmount);
+		LOGGER.info("Tenor " + tenor);
+		LOGGER.info("Days in Year " + daysInAYear);
+		LOGGER.info("IntRate " + intRate);
+		MathContext mc = new MathContext(InterestConstant.CALCULATE_PRECISION,RoundingMode.HALF_UP);
+		LOGGER.info(InterestConstant.EXIT+className+".getInterestAmount");
+		return (osAmount.multiply(new BigDecimal(tenor),mc).multiply(new BigDecimal(intRate),mc)).divide(new BigDecimal(daysInAYear*100),mc);
+		
+		
+		
+	}
+
+ 
+
+
+
+	Calculate.java
+•	The getInterestStrategy() method uses Reflection and returns the appropriate implementation class of CalculationMethodStrategy, based on runtime inputs.
+
+
+
+
+
+	CalculationMethodStrategy.java
+Interface which has the calculateInterest() method
+
+	Calculation360MethodStrategy.java
+•	Implementation of CalculationMethodStrategy interface
+•	Calculates interest using Calculation Method – 360 or 360d/year – real nb of days/month – 1
+
+public BigDecimal calculateInterest(Date startDate, Date endDate,
+			Float intRate, BigDecimal osAmount) {
+		LOGGER.info(InterestConstant.ENTER+className+".calculateInterest()");
+		long diff = Math.abs(endDate.getTime() - startDate.getTime());
+		int tempTenor = (int) (diff / (24 * 60 * 60 * 1000));
+		LOGGER.info(InterestConstant.EXIT+className+".calculateInterest()");
+		String str=ComputeInterest.getInterestAmount(osAmount, tempTenor, 360, intRate).toString();
+		return new BigDecimal(str).setScale(InterestConstant.FINAL_PRECISION, InterestConstant.ROUNDING_MODE);
+		
+	}
+	Calculation365MethodStrategy.java
+
+•	Implementation of CalculationMethodStrategy interface
+•	Calculates interest using Calculation Method – 365 or 365d/year – real nb of days/month – 1
+
+
+public BigDecimal calculateInterest(Date startDate, Date endDate,
+			Float intRate, BigDecimal osAmount) {
+		LOGGER.info(InterestConstant.ENTER+className+".calculateInterest()");
+		@SuppressWarnings("deprecation")
+		int years=endDate.getYear()-startDate.getYear();
+		int noOfDays=365;
+		int tempTenor=InterestConstant.NO_0;
+		BigDecimal intAmount=BigDecimal.ZERO;
+		int count=InterestConstant.NO_0;
+		
+		//Leap Year case
+		if (InterestUtils.isLeapYear(startDate))
+		{
+			noOfDays=366;
+		}
+//Case 1. Start date and end date are in the same year. 
+		if (years==InterestConstant.NO_0)
+		{
+			long diff = Math.abs((endDate).getTime() - startDate.getTime());
+			tempTenor = (int) (diff / (24 * 60 * 60 * 1000));
+			
+			intAmount = ComputeInterest.getInterestAmount(osAmount, tempTenor, noOfDays, intRate);
+			return intAmount.setScale(InterestConstant.FINAL_PRECISION,InterestConstant.ROUNDING_MODE);
+		}
+		// first block of calculation
+		long diff = Math.abs(InterestUtils.getEndOfYear(startDate).getTime() - startDate.getTime());
+		tempTenor = (int) (diff / (24 * 60 * 60 * 1000))+InterestConstant.NO_1;
+		
+		intAmount = ComputeInterest.getInterestAmount(osAmount, tempTenor, noOfDays, intRate);
+		
+		// Middle block of computation
+//Case 2. Start date and end date are not in the same year.
+		if (years>2)// in this case loop for middle cycle will calculate the amount
+		{
+			count=years-2;
+			for (int i=0;i<=count;i++)
+				intAmount=intAmount.add(ComputeInterest.getInterestAmount(osAmount, InterestConstant.NO_1, InterestConstant.NO_1, intRate));
+		}
+		
+		// last block of computation
+		if (InterestUtils.isLeapYear(endDate))
+		{
+			noOfDays=366;
+		}
+		diff = Math.abs(endDate.getTime()-InterestUtils.getStartOfYear(endDate).getTime());
+		tempTenor = (int) (diff / (24 * 60 * 60 * 1000));
+		intAmount=intAmount.add(ComputeInterest.getInterestAmount(osAmount, tempTenor, noOfDays, intRate));
+		
+		LOGGER.info(InterestConstant.EXIT+className+".calculateInterest()");
+		return intAmount.setScale(InterestConstant.FINAL_PRECISION,InterestConstant.ROUNDING_MODE);
+		
+				
+	}
+
+	CalculationEnglishInclusiveMethodStrategy.java
+•	Implementation of CalculationMethodStrategy interface
+•	Calculates interest using Calculation Method –English Inclusive or 365d/year – real nb of days/month
+
+public BigDecimal calculateInterest(Date startDate, Date endDate,
+			Float intRate, BigDecimal osAmount) {
+		LOGGER.info(InterestConstant.ENTER+className+".calculateInterest()");
+		@SuppressWarnings("deprecation")
+		int years=endDate.getYear()-startDate.getYear();
+		int noOfDays=365;
+		int tempTenor=InterestConstant.NO_0;
+		BigDecimal intAmount=BigDecimal.ZERO;
+		int count=InterestConstant.NO_0;
+		
+		
+		if (InterestUtils.isLeapYear(startDate))
+		{
+			noOfDays=366;
+		}
+		
+		
+		if (years==InterestConstant.NO_0)
+		{
+			long diff = Math.abs((endDate).getTime() - startDate.getTime());
+			tempTenor = (int) (diff / (24 * 60 * 60 * 1000))+InterestConstant.NO_1;
+			
+			intAmount = ComputeInterest.getInterestAmount(osAmount, tempTenor, noOfDays, intRate);
+			return intAmount.setScale(InterestConstant.FINAL_PRECISION,InterestConstant.ROUNDING_MODE);
+		}
+		// first block of calculation
+		long diff = Math.abs(InterestUtils.getEndOfYear(startDate).getTime() - startDate.getTime());
+		tempTenor = (int) (diff / (24 * 60 * 60 * 1000))+InterestConstant.NO_1;
+		
+		intAmount = ComputeInterest.getInterestAmount(osAmount, tempTenor, noOfDays, intRate);
+		
+		// Middle block of computation
+		
+		if (years>2)// in this case loop for middle cycle will calculate the amount
+		{
+			count=years-2;
+			for (int i=0;i<=count;i++)
+				intAmount=intAmount.add(ComputeInterest.getInterestAmount(osAmount, InterestConstant.NO_1, InterestConstant.NO_1, intRate));
+		}
+		
+		// last block of computation
+		if (InterestUtils.isLeapYear(endDate))
+		{
+			noOfDays=366;
+		}
+		diff = Math.abs(endDate.getTime()-InterestUtils.getStartOfYear(endDate).getTime());
+		tempTenor = (int) (diff / (24 * 60 * 60 * 1000))+InterestConstant.NO_1;
+		intAmount=intAmount.add(ComputeInterest.getInterestAmount(osAmount, tempTenor, noOfDays, intRate));
+		
+		LOGGER.info(InterestConstant.EXIT+className+".calculateInterest()");
+		return intAmount.setScale(InterestConstant.FINAL_PRECISION,InterestConstant.ROUNDING_MODE);
+		
+	}
+
+
+	CalculationGermanInclusiveMethodStrategy.java
+•	Implementation of CalculationMethodStrategy interface
+•	Calculates interest using Calculation Method –German Inclusive or 360d/year – 30 days/month
+
+public BigDecimal calculateInterest(Date startDate, Date endDate,
+			Float intRate, BigDecimal osAmount) {
+		LOGGER.info(InterestConstant.ENTER+className+".calculateInterest()");
+		int tenor=0;
+		tenor= (endDate.getDate())+(InterestUtils.getMonths(startDate, endDate)*30)+(30-startDate.getDate()+1);
+		LOGGER.info(InterestConstant.EXIT+className+".calculateInterest()");
+		return ComputeInterest.getInterestAmount(osAmount, tenor, 360, intRate).setScale(InterestConstant.FINAL_PRECISION, InterestConstant.ROUNDING_MODE);
+	}
+
+	CalculationGermanMethodStrategy.java
+•	Implementation of CalculationMethodStrategy interface
+•	Calculates interest using Calculation Method –German or 360d/year – 30 days/month -1
+
+public BigDecimal calculateInterest(Date startDate, Date endDate,
+			Float intRate, BigDecimal osAmount) {
+		LOGGER.info(InterestConstant.ENTER+className+".calculateInterest()");
+		int tenor=0;
+		tenor= (endDate.getDate())+(InterestUtils.getMonths(startDate, endDate)*30)+(30-startDate.getDate()+1);
+		LOGGER.info(InterestConstant.EXIT+className+".calculateInterest()");
+		return ComputeInterest.getInterestAmount(osAmount, tenor, 360, intRate).setScale(InterestConstant.FINAL_PRECISION, InterestConstant.ROUNDING_MODE);
+	}
+
+
+	CalculationInternationalInclusiveMethodStrategy.java
+•	Implementation of CalculationMethodStrategy interface
+•	Calculates interest using Calculation Method – International Inclusive or 360d/year – real nb of days/month 
+
+			
+		public BigDecimal calculateInterest(Date startDate, Date endDate,
+			Float intRate, BigDecimal osAmount) {
+			LOGGER.info(InterestConstant.ENTER+className+".calculateInterest()");
+			long diff = Math.abs(endDate.getTime() - startDate.getTime());
+			int tempTenor = (int) (diff / (24 * 60 * 60 * 1000))+1;
+			LOGGER.info(InterestConstant.EXIT+className+".calculateInterest()");
+return ComputeInterest.getInterestAmount(osAmount, tempTenor, 360, intRate).setScale(InterestConstant.FINAL_PRECISION, InterestConstant.ROUNDING_MODE);
+		}
+			
+
+1.3.5	 Proposed design of batches for Interest Proration & Perintsett
+
+The following table shows the batches present in the Interest Module and the parameters required to run the batches
+
+Batch Name	Parameters Required
+run_interest_proration.sct	<branch_code> <run_date>  where
+-	branch_code is the 5 digit branch code
+-	run_date in the format ‘yyyymmdd’
+run_interest_perintsett.sct	<branch_code> <run_date> <product_code> where 
+-	branch_code is the 5 digit branch code
+-	run_date in the format ‘yyyymmdd’
+-	product_code is the 2 digit product code
+ 
+Examples of running the batch :
+-	run_interest_proration.sct 00001 20121001 (where 00001 is the branch code and 20121001 is the run date)
+-	run_interest_perintsett.sct 09066 20121031 PF (where 09066 is the branch code, 20121031 is the run date and PF is the product code)
+
+
+
+Proration Batch –
+
+Interest proration Batch is to be implemented using Spring Batch Framework and will be responsible for generation of daily accruals for the interest running on respective products. 
+
+In order to implement the Proration batch in Spring Batch framework we need to define Proration JOB definition in proration-job.xml.
+
+Following is job configuration: 
+
+<batch:job id="prorationJob">
+		<batch:step id="step1">
+			<batch:tasklet>
+				<batch:chunk reader="prorationReader" processor="prorationProcessor"
+					writer="prorationWriter" commit-interval="2000" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<batch:listeners>
+			<batch:listener ref="paramDataListener" />
+		</batch:listeners>
+		
+	</batch:job>
+
+Interest Proration Job consists of four components
+
+	ProrationReader
+	ProrationProcessor
+	ProrationWriter
+
+
+Class Diagram for Interest ProrationReader :
+	ProationReader is responsible for fetching references of deals which are eligible for accrual process in the form of InterestTransaction objects which are further pass to ProrationProcessor for generation of accruals.
+
+
+SQL to fetch the references eligible for  accrual process is configured using  SQL property of ProrationReader.
+
+
+Configuration of ProrationReader in proration-job.xml :
+
+<bean id="prorationReader" class="com.bnp.ivision.common.readers.proration.ProrationReader">
+		<property name="dataSource" ref="dataSource" />
+		<property name="fetchSize" value="2000" />
+		<property name="rowMapper">
+			<bean class="org.springframework.jdbc.core.BeanPropertyRowMapper">
+				<property name="mappedClass"
+					value="com.bnp.ivision.common.domain.InterestTransaction"></property>
+			</bean>
+		</property>
+		<property name="sql">
+		<value>
+		
+				<![CDATA[
+				SELECT 
+TNX_DTTM               tnxDttm          ,
+REC_INVL_FLAG          recInvlFlag      ,
+INT_CAT_CODE           intCatCode       ,
+INT_CODE               intCode          ,
+PROD_CODE              prodCode         ,
+BRCH_CODE              brchCode         ,
+REF_ID                 refId            ,
+TNX_ID                 tnxId            ,
+RPX_XID                rpxXid           ,
+ADVN_PYMT_DATE         advnPymtDate     ,
+CALC_INT_FROM_DATE     calcIntFromDate  ,
+INT_END_DATE           intEndDate       ,
+DECODE(INT_PYMT_METH_CODE,'06',
+CALC_INT_FROM_DATE, 
+INT_SRT_DATE)          intSrtDate       ,
+INT_SRT_DATE           origIntSrtDate   ,
+LAST_INT_PROC_DATE     lastIntProcDate  ,
+NEXT_INT_PROC_DATE     nextIntProcDate  ,
+RATE_VAL_DATE          rateValDate      ,
+IDX_NO                 idxNo            ,
+DAYS_ADD               daysAdd          ,
+INT_RATE               intRate          ,
+RPX_SEQ                rpxSeq           ,
+SETT_INT_EXCH_RATE     settIntExchRate  ,
+DEFD_INT_AMT           defdIntAmt       ,
+DFLT_INT_AMT           dfltIntAmt       ,
+
+PERD_INT_AMT           perdIntAmt       ,
+SETT_INT_AMT           settIntAmt       ,
+TOT_INT_AMT            totIntAmt        ,
+TOT_INT_SETT_AMT       totIntSettAmt    ,
+WVED_INT_AMT           wvedIntAmt       ,
+MDFY_RATE_FLAG         mdfyRateFlag     ,
+MLTY_RATE_FLAG         mltyRateFlag     ,
+BASE_RATE_CODE         baseRateCode     ,
+INT_CALC_METH_CODE     intCalcMethCode  ,
+INT_CMPD_METH_CODE     intCmpdMethCode  ,
+INT_PYMT_CODE          intPymtCode      ,
+INT_PYMT_METH_CODE     intPymtMethCode  ,
+INT_RATE_TYPE_CODE     intRateTypeCode  ,
+LINK_PROD_CODE         linkProdCode     ,
+INT_CUR_CODE           intCurCode       ,
+INT_PYMT_MMDD_IND      intPymtMmddInd   ,
+MARG_RATE_CODE         margRateCode     ,
+LINK_REF_ID            linkRefId        ,
+SETT_INT_ACT_NO        settIntActNo     ,
+MDFY_COF_RATE          mdfyCofRate      ,
+COF_RATE               cofRate          ,
+REFIX_INT_RATE         refixIntRate     ,
+PRO_TERM               proTerm          
+        FROM dbt_c_int_tnx I
+     
+       WHERE I.brch_code = ?
+           
+         AND I.int_cat_code <> '05'
+                     
+         AND I.REF_ID LIKE ?
+         
+         AND I.PROD_CODE LIKE ?
+            
+         --AND TO_DATE(SUBSTR(I.tnx_id, 1, 6), 'yymmdd') <= TO_DATE('20141220','YYYYMMDD')
+         
+         --testing for holiday handling START
+         
+         --AND I.INT_SRT_DATE <= TO_DATE(?,'YYYYMMDD')
+         
+         AND I.INT_SRT_DATE < (select TO_DATE(parm_data_2,'YYYYMMDD') from dbt_c_param_data where parm_id='P006' and brch_code=i.brch_code and TO_DATE(parm_data_1,'YYYYMMDD')=TO_DATE(?,'YYYYMMDD'))
+         
+         --testing for holiday handling END
+            
+         AND I.tnx_id = (SELECT MAX(I2.tnx_id)
+			           
+                           FROM dbt_c_int_tnx I2, tfv_tnx vtnx
+                         
+                          WHERE I2.brch_code = I.brch_code
+                            AND I2.prod_code = I.prod_code
+                            AND I2.ref_id = I.ref_id
+                            AND I2.int_code = I.int_code
+                            AND (CASE 
+                                WHEN I2.int_pymt_meth_code = '06' THEN I2.CALC_INT_FROM_DATE 
+                                ELSE I2.int_srt_date
+                                END) <=  TO_DATE(?,'YYYYMMDD') - 1 
+                         -- Added condition so that overdue should be picked in case overdue starting on a weekend
+                         -- And in case of month end, the current interest transaction to be picked and not the transaction for the next month
+                            AND (CASE 
+                                WHEN I2.INT_PYMT_METH_CODE = '06' AND I2.LAST_INT_PROC_DATE IS NOT NULL AND TO_DATE(?,'YYYYMMDD') >= I2.INT_END_DATE THEN I2.LAST_INT_PROC_DATE
+                                WHEN I2.INT_PYMT_METH_CODE = '06' AND I2.LAST_INT_PROC_DATE IS NOT NULL AND I2.LAST_INT_PROC_DATE < I2.INT_END_DATE THEN I2.LAST_INT_PROC_DATE + 1
+                                WHEN I2.INT_PYMT_METH_CODE = '06' AND I2.INT_END_DATE IS NULL AND I2.LAST_INT_PROC_DATE <= TO_DATE(?,'YYYYMMDD') THEN I2.LAST_INT_PROC_DATE + 1
+                                ELSE TO_DATE(?,'YYYYMMDD')
+                                END) <= TO_DATE(?,'YYYYMMDD')
+                         
+                         AND vtnx.ref_id = I.ref_id
+                         AND vtnx.tnx_stat_code = '03'
+                         AND I2.tnx_id = vtnx.tnx_id
+                        
+                         )
+           
+         AND ((NVL(I.pro_term, 'N') =
+             'N') OR (NVL(I.pro_term, 'C') = 'C') OR
+             (NVL(I.pro_term, 'D') = 'D'))
+
+       ORDER BY ref_id, int_code ]]>
+		</value>
+        </property>
+        <property name="preparedStatementSetter" ref="prorationPreparedStatementSetter" />
+	</bean>
+
+
+
+
+Class Diagram for Interest ProrationProcessor:
+
+        Class Diagram for Interest Computation :
