@@ -1,0 +1,250 @@
+Enter file contents here
+
+	private void doJuridictionAction(
+			HttpServletRequest request,
+			HttpServletResponse response)
+					throws IVisionException {
+
+		String methodName = "IVisionActionServlet.doJuridictionAction";
+		BusinessRequest brequest = getBusinessRequest(request);
+		UserContext currentContext = getUserContext(request);
+		String currentLanguage=null;
+		if(currentContext!=null)
+		{
+			currentLanguage =
+					currentContext.getString(UserContext.USER_LANGUAGE);
+		}		
+		TraceManager.debug(methodName + " = langue : " + currentLanguage);	
+
+		LogManager.log(currentContext, LogManager.EnumLogManager.LOG_ENTER.getValue(), methodName, "");
+		//928362 : IVN - 20424 : 20141208 : Start
+		if(currentContext != null && !(BusinessCodesResourceProvider.C249_ADMINISTRATOR.equalsIgnoreCase(currentContext.getString(UserContext.USER_TYPE)) 
+				|| BusinessCodesResourceProvider.C249_LOCAL_ADMINISTRATOR.equalsIgnoreCase(currentContext.getString(UserContext.USER_TYPE)))){
+			LogManager
+					.log(currentContext,
+							LogManager.EnumLogManager.LOG_MESSAGE_DEBUG
+									.getValue(), methodName,
+							"Current User is neither Admin nor Local Admin.Redirecting user to login page.");
+			outputXML(
+					response,
+					new IVisionException(
+						new IVisionError("E15131", methodName)).toXML(
+						methodName,
+						"doPost",
+						currentLanguage));
+		}else
+		//928362 : IVN - 20424 : 20141208 : Start
+		// Check the session validity
+		if (checkSessionValidity(request, response)) {
+
+			String actionType =
+					request.getParameter(ActionsResource.ACTION_TYPE);
+
+			// Juridiction Permissions Action Invocation
+			if (ActionsResource
+					.JURIDICTION_PERMISSIONS_ACTION
+					.equals(actionType)) {
+
+				JuridictionPermissionsService permissionsService =
+						new JuridictionPermissionsService();
+
+				IVisionServiceResponse serviceResponse =
+						permissionsService.doJuridiction(
+								request,
+								response,
+								brequest);
+
+				if (ApplicationSettingsResourceProvider
+						.SERVICE_RESPONSE_DIRECT
+						.equals(serviceResponse.getResponseType())) {
+					returnResponse(serviceResponse);
+				}
+				else if (
+						ApplicationSettingsResourceProvider
+						.SERVICE_RESPONSE_EXCEPTION
+						.equals(
+								serviceResponse.getResponseType())) {
+					outputXML(
+							serviceResponse.getResponse(),
+							serviceResponse.getStringResponse());
+				}
+			}
+			// Juridiction Action Invocation
+			else if (ActionsResource.JURIDICTION_ACTION.equals(actionType)) {
+				JuridictionService juridictionService =
+						new JuridictionService();
+				IVisionServiceResponse serviceResponse =
+						juridictionService.doJuridiction(
+								request,
+								response,
+								brequest);
+
+				if (ApplicationSettingsResourceProvider
+						.SERVICE_RESPONSE_DIRECT
+						.equals(serviceResponse.getResponseType())) {
+					returnResponse(serviceResponse);
+				}
+				else if (
+						ApplicationSettingsResourceProvider
+						.SERVICE_RESPONSE_EXCEPTION
+						.equals(
+								serviceResponse.getResponseType())) {
+					outputXML(
+							serviceResponse.getResponse(),
+							serviceResponse.getStringResponse());
+				}
+			}
+			/* 913500 : IVN-13467 : 20130506 : Start */
+			// jurisdiction User Maintenance action invocation
+			else if (ActionsResource.JURIDICTION_MAINTENANCE_ACTION.equals(actionType)) {
+				JuridictionMaintenanceService maintenanceService =
+						new JuridictionMaintenanceService();
+				IVisionServiceResponse serviceResponse =
+						maintenanceService.doJuridiction(
+								request,
+								response,
+								brequest);
+
+				if (ApplicationSettingsResourceProvider
+						.SERVICE_RESPONSE_DIRECT
+						.equals(serviceResponse.getResponseType())) {
+					returnResponse(serviceResponse);
+				}
+				else if (
+						ApplicationSettingsResourceProvider
+						.SERVICE_RESPONSE_EXCEPTION
+						.equals(
+								serviceResponse.getResponseType())) {
+					outputXML(
+							serviceResponse.getResponse(),
+							serviceResponse.getStringResponse());
+				}
+			}
+			//966027 : IVN-20839 : 20140725 : Jurisdiction : Fetching no of branches assigned to user : - Starts	
+			else if (ActionsResource.JURIDICTION_FETCH_BRANCH_ACTION.equals(actionType)){
+
+				String userUpdated =
+						request.getParameter(ActionsResource.USER_ID);
+				TechnicalSession technicalSession = null;
+				String userBranchNo = null;
+				List<String> userBranchNumber = null;
+
+				Map<String, String> localHashMap = new HashMap<String, String>();
+				localHashMap.put(UserContext.USER_ID, userUpdated);
+
+				try{
+					technicalSession = TechnicalService.getTechnicalSessionHandle();
+				}catch (Exception e) {
+					LogManager.log(currentContext, LogManager.EnumLogManager.LOG_EXCEPTION.getValue(), methodName,
+										"Unable to fetch Technical Session bean handle :"+e.getMessage());
+					throw new IVisionException(
+							new IVisionError("E00000", e.getMessage()));
+				}					
+
+				if(null != technicalSession){
+					userBranchNumber = technicalSession.getUserBranchNumbers(localHashMap);
+					userBranchNo = String.valueOf(userBranchNumber.size());
+				}
+
+				IVisionServiceResponse serviceResponse = new IVisionServiceResponse();
+				serviceResponse.setIVisionServiceResponse(
+						request,
+						response,
+						userBranchNo,
+						ApplicationSettingsResourceProvider.SERVICE_RESPONSE_DIRECT,
+						ApplicationSettingsResourceProvider.HTML_RESPONSE_FORMAT,
+						brequest.getUserContext());
+
+				returnResponse(serviceResponse);
+				//966027 : IVN-20839 : 20140725 : Jurisdiction : Fetching no of branches assigned to user : - Ends
+
+				/* 913500 : IVN-13467 : 20130506 : End */
+				// Juridiction Menu Action Invocation
+			}else {
+
+				//966027 : IVN-20839 : 20140725 : Jurisdiction : Setting brchCode in user context - Starts
+				String branchCode = request.getParameter("brchCode");
+
+				if (branchCode != null) {
+					currentContext.put(UserContext.BRANCH_CODE,branchCode);
+					User user = GetCommonService.getUserWebFunc(branchCode, currentContext.getString(UserContext.USER_ID));
+					String pcUserType = user.getPc_user_type();
+					currentContext.put(UserContext.PC_USER_TYPE, pcUserType);
+				}
+
+				if (branchCode != null && currentContext.getString(UserContext.PC_ACTIVE_FLAG) != null) {
+					TechnicalSession technicalSession = null;
+					String data = null; 
+					try{
+						technicalSession = TechnicalService.getTechnicalSessionHandle();
+					}catch (Exception e) {
+						LogManager.log(currentContext, LogManager.EnumLogManager.LOG_EXCEPTION.getValue(), methodName,
+											"Unable to fetch Technical Session bean handle :"+e.getMessage());
+						throw new IVisionException(
+								new IVisionError("E00000", e.getMessage()));
+					}					
+
+					if(null != technicalSession){
+						data = technicalSession.getParameterP130Data(currentContext,branchCode);
+					}
+					
+					
+					currentContext.put(UserContext.BACKEND_TYPE, data);
+
+					LogManager.log(currentContext, LogManager.EnumLogManager.LOG_MESSAGE_DEBUG.getValue(), methodName, "set UserContext BACKEND_TYPE = " + data);
+				}
+				//966027 : IVN-20839 : 20140725 : Jurisdiction : Setting brchCode in user context - Ends
+
+				JuridictionMenuService menuService =
+						new JuridictionMenuService();
+				IVisionServiceResponse serviceResponse =
+						menuService.doJuridiction(request, response, brequest);
+
+				if (ApplicationSettingsResourceProvider
+						.SERVICE_RESPONSE_DIRECT
+						.equals(serviceResponse.getResponseType())) {
+					returnResponse(serviceResponse);
+				}
+				// Dispatch the request to the Juridiction Manu Page
+				else if (
+						ApplicationSettingsResourceProvider
+						.SERVICE_RESPONSE_DISPATCH
+						.equals(
+								serviceResponse.getResponseType())) {
+					try {
+
+						dispatchRequest(
+								serviceResponse.getStringResponse(),
+								serviceResponse.getRequest(),
+								serviceResponse.getResponse());
+
+					}
+					catch (IVisionException ie) {
+
+						TraceManager.error(
+								"Cannot dispatch the request to the Juridiction Menu Page.");
+					}
+				}
+			}
+		}
+
+		//--------------------------------------------------------
+		// The validation of session has failed, hence we must 
+		// dispatch the request to the Login page:
+		//--------------------------------------------------------
+		else {
+			//return XML-RPC flow error for authentification failure
+			TraceManager.trace(
+					"In " + methodName + ", authentification failure",
+					TraceManager.TRACER_SERVLET_TYPE,
+					TraceManager.TRACER_PUBLIC_LEVEL);
+
+			outputXML(
+					response,
+					new IVisionException(
+							new IVisionError("E15001", methodName)).toXML(
+									methodName,
+									"doPost",
+									currentLanguage));
+		}
+	}
