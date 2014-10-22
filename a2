@@ -1,0 +1,32 @@
+
+genericservlet
+
+
+abstract class IVisionGenericServlet extends HttpServlet
+
+/**
+ * Dispatch request to another iVision servlet
+ *
+ * <p><i>Creation date: (00/08/29 15:50:55)</i><p>
+ * @param resourceDomain domain where to find the URL of the delegated servlet
+ * @param resourceName alias of the delegated servlet
+ * @param request HTTP request
+ * @param response HTTP response
+ * @exception IVisionException
+ *
+ */
+private void dispatchRequest(
+    String resourceDomain,
+    String resourceName,
+    HttpServletRequest request,
+    HttpServletResponse response)
+    throws IVisionException {
+
+    try {
+    	//471274 : IVN-19862 : JTEST RULE D01R00297 : 20140220 : Start
+    	boolean isValidUrl = CommonUtils.validateURLFile(ResourceManager.getResource(resourceDomain, resourceName));
+    	if(isValidUrl){
+    		 RequestDispatcher rd =
+    	            getServletContext().getRequestDispatcher(ResourceManager.getResource(resourceDomain, resourceName));
+    	        rd.include(request, response);
+		}
