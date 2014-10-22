@@ -1,0 +1,37 @@
+actionservlet
+
+public void sessionCreated(HttpSessionEvent httpSessionEvent) {
+	}
+
+	/* (non-Javadoc)
+	 * @see javax.servlet.http.HttpSessionListener#sessionDestroyed(javax.servlet.http.HttpSessionEvent)
+	 */
+	public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
+
+
+		//MKS IVN-476 Multiple User Session date 07/08/2008 Start
+		InvalidateUserSessionService invalidateUserSessionService = new InvalidateUserSessionService();
+		//MKS IVN-476 Multiple User Session date 07/08/2008 End
+		HttpSession session = httpSessionEvent.getSession();
+
+
+		if (session != null) {
+			//913501 : 13082013 : IVN-14766 : JTEST - D01R00116 : START
+			UserContext userContext =
+					(UserContext) session.getAttribute("userContext");
+			//913501 : 13082013 : IVN-14766 : JTEST - D01R00116 : END
+			// Get Tracer transactions for control
+			//MKS IVN-476 Multiple User Session date 07/08/2008 Start
+			String sessionId = session.getId();
+			if (userContext != null) {
+				invalidateUserSessionService.doInvalidateUserSession(
+						userContext,
+						sessionId);
+			}
+			//MKS IVN-476 Multiple User Session date 07/08/2008 End		
+			LockService lockService = new LockService();
+			lockService.doUnlock(userContext);
+		}
+
+		LogManager.log(null, LogManager.EnumLogManager.LOG_EXIT.getValue(), methodName, "");
+	}
