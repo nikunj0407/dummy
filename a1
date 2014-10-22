@@ -1,0 +1,16 @@
+jsp
+authentication
+
+<FORM name="form1" method="post" action="/servlet/IVisionActionServlet">
+<script language="JavaScript" for="window" event="onload">
+// copied from COM_MenuFunctions.js
+function fncSetLabel(l_strLabelName, l_strLabelNode, l_blnTail)
+{
+  if (!l_blnTail) l_strTail = "";
+  if (l_blnTail) l_strTail = ":&nbsp;";
+
+  document.all(l_strLabelName).innerHTML = labels_xml.selectSingleNode("labels/"+l_strLabelNode).text + l_strTail;
+}
+// Set labels
+fncSetLabel("lbl_enter", "lbl_enter");
+</script>
