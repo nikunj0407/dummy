@@ -1,0 +1,13 @@
+profile_select
+<a href="#"
+														onclick="fncOnClickProfile('<%=strPK%>');"
+														STYLE="TEXT-DECORATION: NONE">
+
+function fncOnClickProfile(strPK){
+top.location = "/servlet/IVisionActionServlet?actionService=loginAction&selectedProfile="+strPK;
+}
+
+
+String actionService =
+					request.getParameter(
+							ApplicationSettingsResourceProvider.ACTION_SERVICE);
