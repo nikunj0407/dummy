@@ -1,0 +1,141 @@
+Spring Job
+This class contains the main method,it initializes the job. All the
+ * configuration files are read and job executor launches the job
+ 
+ JobInitializer{
+setJobXmlFile(BatchConstants.JOB_XML
+				+ System.getProperty(BatchConstants.PROGRAM_NAME) + "Job.xml");
+// Set Executer
+setExecutor(BatchConstants.EXECUTOR);
+LOGGER.info("Exiting Job...");
+springContext.registerShutdownHook();
+
+private static void setExecutor(String executer) {
+		JobExecutor msc = (JobExecutor) springContext.getBean(executer);
+		msc.runLauncher(springContext);
+	}
+	private static void setJobXmlFile(String jobXmlFile) {
+		springContext = new ClassPathXmlApplicationContext(jobXmlFile);
+	}
+public static ApplicationContext getSpringContext() {
+		return springContext;
+	}
+
+	private static void setLogger(String logXmlFile) {
+		// Initialize Log4j
+		new ClassPathXmlApplicationContext(logXmlFile);
+	}
+}
+
+
+public class ROExecutor implements JobExecutor {
+	public void runLauncher(ApplicationContext applicationContext) {
+		final String methodName = "ROExecutor.runLauncher";
+
+		LOGGER.info(methodName + ":Entering");
+		JobLauncher launcher = (JobLauncher) applicationContext
+				.getBean(BatchConstants.LAUNCHER);
+		/** To use for online **/
+		 String batchName = System.getProperty("PROGRAM_NAME");
+		/** To use in local **/
+		 Job roJob = (Job) applicationContext.getBean(batchName);
+
+		JobParameters jobParameters = new JobParameters();
+		try {
+			launcher.run(roJob, jobParameters);
+		} catch (JobExecutionAlreadyRunningException e) {
+			LOGGER.error("Exception is : " + e.getMessage());
+		} catch (JobRestartException e) {
+			LOGGER.error("Exception is : " + e.getMessage());
+		} catch (JobInstanceAlreadyCompleteException e) {
+			LOGGER.error("Exception is : " + e.getMessage());
+		} catch (JobParametersInvalidException e) {
+			LOGGER.error("Exception is : " + e.getMessage());
+		}
+
+		LOGGER.info(methodName + ":Exiting");
+	}
+	
+	public class DomusBean implements Serializable {
+	private String managerCode;
+	private String idExtContract;
+	private String idExtInvariantContract;
+	getter
+	setter
+	}
+	
+	public class DomusCursorItemReader extends StoredProcedureItemReader<DomusBean> {
+	public void setProcedureName(String procName) {
+	
+	super.setParameters(new SqlParameter[] {
+					new SqlOutParameter("refCursor", OracleTypes.CURSOR),
+					new SqlParameter("branchCode", Types.VARCHAR),
+					new SqlParameter("batchDate", Types.VARCHAR) });
+
+			super.setPreparedStatementSetter(new PreparedStatementSetter() {
+				public void setValues(PreparedStatement parameterSetter)
+						throws SQLException {
+					CallableStatement csmt = (CallableStatement) parameterSetter;
+					csmt.registerOutParameter(1, OracleTypes.CURSOR);
+					csmt.setString(2, branchCode);
+					csmt.setString(3, batchDate);
+				}
+			});
+			super.setRefCursorPosition(1);
+			}
+			
+			if (procedureName != null) {
+				super.setProcedureName(procedureName);
+			}
+			}
+			
+			
+			public class DomusCursorItemWriter<T> implements ItemWriter<DomusBean>,
+		FlatFileFooterCallback, FlatFileHeaderCallback, ItemStream {
+		private FlatFileItemWriter<DomusBean> delegate;
+		public void write(List<? extends DomusBean> items) throws Exception {
+		final String methodName = DomusCursorItemWriter.class.getName()+"."+"write()";
+		logger.info("Entering --> " + methodName);
+		delegate.write(items);
+		totalRecordCount += items.size();
+		logger.info("Exiting --> " + methodName);
+	}
+	
+	
+	@Override
+	public void writeHeader(Writer writer) throws IOException {
+		final String methodName = DomusCursorItemWriter.class.getName()+"."+"writeHeader()";
+		logger.info("Entering --> " + methodName);
+		domusUtil = new DomusUtil();
+		// 980935 :: 20140523 :: JTEST - D01R00301 :: Start
+		//StringBuffer fileHeader = new StringBuffer();
+		StringBuilder fileHeader = new StringBuilder();
+		// 980935 :: 20140523 :: JTEST - D01R00301 :: End
+		try {
+			fileHeader.append(domusUtil.getFileHeader(codePrise, branchCode,
+					batchDate, codeBanque).toString()
+					).append("\n").append(domusUtil.getDataHeader(codePrise).toString());
+		} catch (IVisionException ie) {
+			logger.error("Error creating file header" + ie.getMessage());
+		}
+		writer.write(fileHeader.toString());
+		logger.info("Exiting --> " + methodName);
+	}
+	/**
+	 * Override of the process method of ItemProcessor
+	 */
+
+	public class DomusProcessor extends IvisionBatch implements
+		ItemProcessor<DomusBean, String> {
+		@Override
+	public String process(DomusBean domusBean) throws Exception {
+		singleRecord=new StringBuffer();
+		switch (codePrise) {
+		case 160:
+			domusBeanString = domusBean.toStringForRG1();
+			}
+		singleRecord.append(domusBeanString);
+		return singleRecord.toString();
+	}
+
+}
