@@ -1,0 +1,31 @@
+Enter file contents hereXML
+. To generate XML from the Existing product specific beans with minimal changes in existing Product beans.
+
+2. Cincom Eloquence engine to be provided with XML as input for Advice generation in form of PDF. 
+
+
+
+
+
+var l_xmlRet =  fncSyncCallServlet("IVisionActionServlet", l_xmlInput, "productAction");
+
+
+function fncSyncCallServlet(l_strServletName, l_xmlInput, l_strActionService,l_strActionType,l_strOtherParameters)
+{
+  var XMLHTTPObject = new ActiveXObject("Microsoft.XMLHTTP");
+  l_strServletName
+  l_strServletName="IVisionActionServlet?actionService=systemFeaturesAction";
+  // USE METHOD GET INSTEAD OF POST FOR WSAD 5.0 LOCAL TEST.
+  XMLHTTPObject.open("POST","/servlet/" + l_strServletName, false);
+  XMLHTTPObject.send(l_xmlInput);
+  return XMLHTTPObject.responseXML;
+  }
+
+
+redirectRequest(
+							serviceResponse.getStringResponse(),
+							serviceResponse.getRequest(),
+							serviceResponse.getResponse());
+							
+res.sendRedirect((String)CommonUtils.validateUrl(url,false));
+
