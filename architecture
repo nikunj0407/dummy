@@ -1,0 +1,13 @@
+Architecture
+•	Presentation tier containing the HTML pages, the JSP pages, the XSL components, JavaScript…
+•	Business Tier containing the EJB-2.0,JDBC,Spring JPA,Hibernate,Spring JMS, Transaction management with both Container Managed Persistence <CMP> and Bean Managed Persistence <BMP>
+•	Database Server  consists of iVision database which is Oracle 11g.Database objects are PL/SQL objects, views, sequences etc. This tier also consists of  iVision EOD<End of the day> and BOD <Beginning of the day> batches
+
+Presentation tier mainly consists of the look and feel components like html, CSS alongwith javascript. Also, it uses AJAX <Asynchronous javascript and and XML> to fetch from or to insert the data into the database. iVision action servlet acts a s a Main controller for the iVision this servlet also resides on the presentation layer.
+
+Business tier consist of EJB-2.0 <Enterprise Java Beans> components which handles the logic of persistence of the data into the iVision database. Transaction management is done using CMP and BMP persistence. Also this tier consists of the Spring JPA and Hibernate to select  and insert the data in the database. These frameworks were introduced during Fortis project development.
+
+Database server is Oracle 11g which has database objects like Stored procedures, packages, functions, triggers. This server hosts all EOD and BOD batches on its file system. These batches are scheduled in TNG.These batches are written using Spring batches. This database server is interfaced with various interface using MQ and CFT. These interfaces are Connexis trade interface, Filenet interface etc.
+
+An additional security has been added to iVision using iPKI. 
+
