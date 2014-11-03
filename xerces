@@ -1,0 +1,94 @@
+// XML XERCES Parser
+		DOMParser parser = new DOMParser();
+
+		// DOM manipulations
+		DocumentImpl diPC = new DocumentImpl(); // Final DOM
+		DocumentImpl diTRMaster = new DocumentImpl(); // IB master DOM
+		DocumentImpl tempDoc = new DocumentImpl(); // Temporary subtrees DOM
+		Element eLocalRoot = null;
+		Node tempNode = null;
+		
+		String resultString = packingCredit.toOrgXML(userContext);			
+			
+			parser.parse(new InputSource(new StringReader(resultString)));
+			tempDoc = (DocumentImpl) parser.getDocument();
+			tempNode = (Node) tempDoc.getDocumentElement();
+			eLocalRoot.appendChild(diPC.importNode(tempNode, true));
+			{diPc=diInput}
+			serializeDOM(applyStyleSheet(diInput, styleSheet));
+			
+			
+			applyStyleSheet(
+		DocumentImpl diInput,
+		String styleSheet)
+		throws IVisionException {
+
+		String methodName = "IvisionXmlProcessor.applyStyleSheet";
+		LogManager.log(null, LogManager.EnumLogManager.LOG_ENTER.getValue(), methodName, "");
+
+		DOMSource in = null;
+		DOMResult out = null;
+		TransformerFactory tfactory = null;
+		Transformer transformer = null;
+
+		IVisionErrorListener errorListener = new IVisionErrorListener();
+
+		try {
+			System.setProperty("javax.xml.transform.TransformerFactory", "org.apache.xalan.processor.TransformerFactoryImpl");
+			DocumentImpl diResult = new DocumentImpl();
+			in = new DOMSource(diInput);
+			out = new DOMResult(diResult);
+
+			in.setNode(diInput.getDocumentElement());
+			tfactory = TransformerFactory.newInstance();
+			tfactory.setErrorListener(errorListener);
+			transformer = tfactory.newTransformer(new StreamSource(styleSheet));
+			transformer.setErrorListener(errorListener);
+			transformer.transform(in, out);
+			LogManager.log(null, LogManager.EnumLogManager.LOG_EXIT.getValue(), methodName, "");
+			return diResult;
+		}
+		catch (TransformerConfigurationException tce) {
+			throw new IVisionException(
+				new IVisionError("E00032", methodName, tce.getMessage()));
+		}
+		catch (TransformerException te) {
+			throw new IVisionException(
+				new IVisionError("E00032", methodName, te.getMessage()));
+		} catch(Throwable e) {
+			throw new IVisionException(
+			new IVisionError("E00000", methodName, e.getMessage()));
+		}
+	}
+	
+	
+	public static String serializeDOM(DocumentImpl diResult)
+		throws IVisionException {
+
+		String methodName = "IvisionXmlProcessor.serializeDOM";
+		LogManager.log(null, LogManager.EnumLogManager.LOG_ENTER.getValue(), methodName, "");
+		
+		StringWriter xmlWriter = new StringWriter();
+		XMLSerializer serializer = new XMLSerializer();
+		OutputFormat xmlFormat = null;
+
+		xmlFormat = new OutputFormat(diResult);
+		xmlFormat.setIndenting(false);
+		xmlFormat.setOmitXMLDeclaration(true);
+		xmlFormat.setPreserveSpace(true);
+		xmlFormat.setLineSeparator("&#10;");
+
+		try {
+			serializer.setOutputFormat(xmlFormat);
+			serializer.setOutputCharStream(xmlWriter);
+			serializer.serialize(diResult);
+		}
+		catch (IOException ioe) {
+			throw new IVisionException(
+				new IVisionError("E00033", methodName, ioe.getMessage()));
+		}
+
+		LogManager.log(null, LogManager.EnumLogManager.LOG_EXIT.getValue(), methodName, "");
+		
+		return xmlWriter.toString();
+	}
