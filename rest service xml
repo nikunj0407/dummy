@@ -1,0 +1,76 @@
+Enter file contents here<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:sws="http://www.springframework.org/schema/web-services"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" 
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+							http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+							http://www.springframework.org/schema/web-services
+							http://www.springframework.org/schema/web-services/web-services-2.0.xsd
+							http://www.springframework.org/schema/context
+							http://www.springframework.org/schema/context/spring-context-3.0.xsd
+							http://www.springframework.org/schema/mvc
+							http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+							http://www.springframework.org/schema/util 
+							http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+	<import resource="jdbcTemplate.xml" />
+
+	<!-- Factory Beans -->
+	<bean id="InterestStrategyFactory" class="com.bnp.ivision.common.interest.factories.InterestStrategyFactory" />
+	<bean id="InterestPhaseFactory" class="com.bnp.ivision.common.interest.factories.InterestPhaseFactory" />
+	
+	<!-- Interest Service Beans -->		
+	<bean id="InterestService" class="com.bnp.ivision.common.interest.service.InterestService" />
+	
+	<!-- Interest Strategy Beans -->	
+	<bean id="InterestStrategy" class="com.bnp.ivision.common.interest.stratagies.InterestStrategy" abstract="true" />
+	<bean id="ExtendInterestStrategy" parent="InterestStrategy" class="com.bnp.ivision.common.interest.stratagies.ExtendInterestStrategy" />
+	<bean id="NormalInterestStrategy" parent="InterestStrategy" class="com.bnp.ivision.common.interest.stratagies.NormalInterestStrategy" />
+	<bean id="OverdueInterestStrategy" parent="InterestStrategy" class="com.bnp.ivision.common.interest.stratagies.OverdueInterestStrategy" />
+
+	<!-- Statement Generator Beans -->	
+	<bean id="InsertStmtGenerator" abstract="true" class="com.bnp.ivision.common.interest.statements.InsertStmtGenerator" />
+	<bean id="NormalInsertStmtGenerator" parent="InsertStmtGenerator" class="com.bnp.ivision.common.interest.statements.NormalInsertStmtGenerator" />
+	<bean id="OverdueInsertStmtGenerator" parent="InsertStmtGenerator" class="com.bnp.ivision.common.interest.statements.OverdueInsertStmtGenerator" />
+	<bean id="ExtendInsertStmtGenerator" parent="InsertStmtGenerator" class="com.bnp.ivision.common.interest.statements.ExtendInsertStmtGenerator" />
+	<bean id="UpdateStmtGenerator" class="com.bnp.ivision.common.interest.statements.UpdateStmtGenerator" />
+	<bean id="TransactionStatementGenerator" class="com.bnp.ivision.common.interest.statements.TransactionStatementGenerator" />
+	
+	<!-- Statement Beans -->	
+	<bean id="InterestStatement" class="com.bnp.ivision.common.interest.domain.InterestStatement" />
+	<bean id="TransactionStatement" class="com.bnp.ivision.common.interest.domain.TransactionStatement" />
+		
+	<!-- Interest Computation -->	
+	<bean id="ComputationInvoker" class="com.bnp.ivision.common.interest.compute.ComputationInvoker" />
+
+	<!-- Interest DAO Beans -->	
+	<bean id="InterestDAO" class="com.bnp.ivision.common.interest.dao.InterestDAO" />
+
+	<!-- Interest RowMapper -->	
+	<bean id="InterestStatementRowMapper" class="com.bnp.ivision.common.interest.mappers.InterestStatementRowMapper" />
+
+	<!-- Interest Phases Beans -->	
+	<bean id="InterestPhases" abstract="true" class="com.bnp.ivision.common.interest.phases.InterestPhases" />
+	<bean id="InterestPhaseNew" parent="InterestPhases" class="com.bnp.ivision.common.interest.phases.InterestPhaseNew" />	
+	<bean id="InterestPhaseUpdate" parent="InterestPhases" class="com.bnp.ivision.common.interest.phases.InterestPhaseUpdate" />
+	<bean id="InterestPhaseSettle" parent="InterestPhases" class="com.bnp.ivision.common.interest.phases.InterestPhaseSettle" />
+	<bean id="InterestPhaseExtend" parent="InterestPhases" class="com.bnp.ivision.common.interest.phases.InterestPhaseExtend" />
+	<bean id="InterestPhasePartialSettle" parent="InterestPhases" class="com.bnp.ivision.common.interest.phases.InterestPhasePartialSettle" />
+	<bean id="InterestPhaseProdTransfer" parent="InterestPhases" class="com.bnp.ivision.common.interest.phases.InterestPhaseProdTransfer" />
+
+	<!-- Interest RowMapper -->	
+	<bean id="InterestRateImpl" class="com.bnp.ivision.common.interest.compute.rate.InterestRateImpl" scope="prototype" lazy-init="true" />
+
+	<!-- Logging Bean -->	
+	<!-- 945054 : 20140704 : below class is not being used, JTEST Violation : START -->
+	<!-- <bean id="WebLoggerBean" class="com.bnp.ivision.common.interest.aspect.logger.WebLoggerBean" /> -->
+	<!-- 945054 : 20140704 : below class is not being used, JTEST Violation : END -->
+	
+	<!-- AOP -->	
+	<!-- <aop:aspectj-autoproxy>
+		<aop:include name="WebLoggerBean" />
+	</aop:aspectj-autoproxy> -->
+</beans>
