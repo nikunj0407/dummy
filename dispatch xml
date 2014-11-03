@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:sws="http://www.springframework.org/schema/web-services"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" 
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+							http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+							http://www.springframework.org/schema/web-services
+							http://www.springframework.org/schema/web-services/web-services-2.0.xsd
+							http://www.springframework.org/schema/context
+							http://www.springframework.org/schema/context/spring-context-3.0.xsd
+							http://www.springframework.org/schema/mvc
+							http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+							http://www.springframework.org/schema/util 
+							http://www.springframework.org/schema/util/spring-util-3.0.xsd
+							http://www.springframework.org/schema/aop
+							http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+
+
+	<import resource="Interest-Service.xml" />
+	<import resource="logging_local.xml" />
+
+	<!-- Component Scan -->
+	<context:component-scan base-package="com.bnp.ivision.common.interest" />
+	<mvc:annotation-driven />
+
+	<!-- JAXB Marshaller -->
+	<bean id="jaxbMarshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="classesToBeBound">
+			<list>
+				<value>com.bnp.ivision.common.interest.domain.Interest</value>
+				<value>com.bnp.ivision.common.interest.domain.InterestStatement</value>
+				<value>com.bnp.ivision.common.interest.domain.InterestStatementList</value>
+				<value>com.bnp.ivision.common.interest.domain.UpdatedStatementList</value>
+				<value>com.bnp.ivision.common.interest.domain.TransactionStatement</value>
+				<value>com.bnp.ivision.common.interest.domain.TransactionStatementList</value>
+				<!-- 945054 : IVN-18866 : Error Propagation : 20140827 : START -->
+				<value>com.bnp.ivision.common.interest.domain.InterestErrorInfo</value>
+				<!-- 945054 : IVN-18866 : 20140827 : END -->
+			</list>
+		</property>
+		<property name="marshallerProperties">
+			<map>
+				<entry key="jaxb.fragment">
+					<value type="boolean">true</value>
+				</entry>
+			</map>
+		</property>
+	</bean>
+
+	<!-- Marshalling View for Interest -->
+	<bean id="interestdetails" class="org.springframework.web.servlet.view.xml.MarshallingView">
+		<property name="marshaller" ref="jaxbMarshaller" />
+	</bean>
+
+	<!-- Interest request Object -->
+	<bean id="interest" class="com.bnp.ivision.common.interest.domain.Interest" />
+
+	<!-- View Resolver -->
+	<bean class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="mediaTypes">
+			<map>
+				<entry key="xml" value="application/xml" />
+				<entry key="html" value="text/html" />
+			</map>
+		</property>
+		<property name="viewResolvers">
+			<list>
+				<bean class="org.springframework.web.servlet.view.BeanNameViewResolver" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- Converters -->
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+		<property name="messageConverters">
+			<util:list id="beanList">
+				<ref bean="marshallingHttpMessageConverter" />
+				<ref bean="stringHttpMessageConverter" />
+			</util:list>
+		</property>
+	</bean>
+
+	<bean id="stringHttpMessageConverter" class="org.springframework.http.converter.StringHttpMessageConverter" />
+
+	<bean id="marshallingHttpMessageConverter"
+		class="org.springframework.http.converter.xml.MarshallingHttpMessageConverter">
+		<property name="marshaller" ref="jaxbMarshaller" />
+		<property name="unmarshaller" ref="jaxbMarshaller" />
+	</bean>
+	
+	<!-- Properties -->
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE"/>
+        <property name="location" value="classpath:properties/RES_InterestWebService.properties"/>
+     </bean> 
+</beans>
