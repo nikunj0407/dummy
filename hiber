@@ -1,0 +1,8 @@
+	public void insert(Object entityObject) throws IVisionException {
+		String methodName="IvisionDAO.insert";
+    	LogManager.log(null, LogManager.EnumLogManager.LOG_ENTER.getValue(),methodName,"");	
+    	//CJA IVN-6012 Credit Interface 20-05-2011 Start
+		entityManager.merge(entityObject);
+		//CJA IVN-6012 Credit Interface 20-05-2011 End	 
+		LogManager.log(null, LogManager.EnumLogManager.LOG_EXIT.getValue(),methodName,"");
+	}
