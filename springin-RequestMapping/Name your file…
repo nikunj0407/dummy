@@ -1,0 +1,90 @@
+@RequestMapping("/interest")
+@Controller
+public class InterestServiceController implements ServletContextAware  {
+
+
+
+@RequestMapping(method = RequestMethod.POST, value = "/compute", headers = "Accept=*/*")
+	@ResponseBody
+	public ModelAndView computeDetails(@RequestBody Interest reqObj,
+			HttpServletRequest request) throws InterestServiceException {log.info("calling Computing interest.");
+		// Preparing Interest Object, Rows to be updated and Rows to be inserted
+		interest = intrestService.computeInterest(reqObj);
+		//945054 : IVN-18866 : 20140827 : START
+		//Added constants to BusinessCodesResourceProvider
+		return new ModelAndView(BusinessCodesResourceProvider.INTEREST_DEFINED_VIEW, BusinessCodesResourceProvider.INTEREST_VIEW_TYPE, interest);
+		//945054 : IVN-18866 : 20140827 : END
+	}
+	
+	public static InterestCycleIdentifier getIdentifier(Interest reqObj) {
+
+		for (InterestCycleIdentifier identifier : values()) {
+			if (identifier.match(reqObj)) {
+				return identifier;
+			}
+		}
+
+		return null;
+	}
+	
+	public enum InterestCycleIdentifier {
+
+	// 913253 : IVN-18866 : 02-Apr-2014: Product Interest Transfer : Start
+	PRODTRANSFER {
+		boolean match(Interest reqObj) {
+			// Put here the implementation for this algorithm will be triggered
+
+			return (isProdTransferCase(reqObj) && BusinessCodesResourceProvider.C002_NEW.equals(reqObj
+					.getContextinfo()
+					.get(BusinessCodesResourceProvider.TRANSACTIONTYPECODEKEY)) &&  BusinessCodesResourceProvider.C003_OPEN_EBP
+					.equals(reqObj
+							.getContextinfo()
+							.get(BusinessCodesResourceProvider.TRANSACTIONSUBTYPECODEKEY)));
+
+		}
+
+		public InterestPhases execute() throws InterestServiceException {
+			// Put here the implementation of this first algorithm
+			try {
+				return InterestPhaseFactory.createInstance("InterestPhaseProdTransfer");
+			} catch (InterestServiceException e) {
+				log.error("Exception in InterestPhaseFactory.createInstance - "
+						+ e.getMessage(),e);
+				throw new InterestServiceException(e.getMessage());
+			}
+		}
+	},
+	
+	
+	
+	
+	
+	
+	public static InterestPhases createInstance(String className)
+			throws InterestServiceException {
+
+		log.info("Getting WebApplicationContext.");
+
+		HttpSession session = BusinessCodesResourceProvider.getSession();
+
+		ServletContext servletContext = session.getServletContext();
+
+		WebApplicationContext wac = WebApplicationContextUtils
+				.getWebApplicationContext(servletContext);
+
+		try {
+
+			return (InterestPhases) wac.getBean(className);
+			
+			
+			
+			
+			
+			public Interest computeInterest(Interest interest)
+			throws InterestServiceException {
+
+		InterestPhases interestPhase = null;				
+		InterestCycleIdentifier identifier = InterestCycleIdentifier.getIdentifier(interest);
+		if(identifier != null) {
+			interestPhase = identifier.execute();
+		}
