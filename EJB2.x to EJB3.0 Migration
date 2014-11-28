@@ -1,0 +1,294 @@
+
+ Application, a 3 tier application distributed application using EJB2.0.
+With regards to EJB’s implemented in iVision below features of EJB (2.x) exists in iVision application:
+1.	Stateless Session Beans
+2.	Stateful Session Beans
+3.	Transaction Management using global transaction (i.e. UserTransaction of j2ee.jar)
+4.	ejb-jar.xml to have transaction configuration and beans declaration.
+5.	Vendor Specific ibm-ejb-jar-bnd.xmi to provide JNDI bindings.
+6.	Performs JNDI lookup to obtain reference to any EJB resource.
+7.	JMS calls initiated from Application Layer (EJBs).
+
+To migrate an EJB2.0 compliant code to EJB3.0, we need to understand the improvements being added to EJB3.0 and the implementation details prevailing in EJB2.0.
+•	EJB 3.0 Introduction
+To introduce EJB3.0, below lists provides a high level overview of changes implemented in EJB3.0 specifications.
+1.	The EJB 3.0 specification makes programming much simpler. It makes the container do more work and the developers do less work.
+2.	It decreases the number of programming artifacts for developers to provide, eliminates the requirement to implement ejb callback methods, and reduces the complexity of the entity bean programming model.
+The EJB 3.0 specification provides the following advantages:
+1.	Fewer number of classes and interfaces
+2.	POJO/POJI-based components
+3.	Deployment descriptors are optional
+4.	JNDI lookups are no longer necessary
+5.	Persistence API for lightweight persistence for OR mapping
+6.	Interceptors
+To start with the migration process documentation, we would explain the individual components used in iVision (EJB2.x) and the changes performed for EJB3.0 (P.O.C code).
+
+
+
+
+
+•	Migrating Stateless Session Beans
+In this Section, we will look at the changes proposed for stateless session bean. It shows the POJOs and lightweight components implementation.
+•	Stateless Session Beans in EJB2.x
+In EJB 2.x and earlier specifications, stateless session beans required two interfaces: 
+a.	The remote interface (or local interface) for defining business methods and the home interface for defining lifecycle methods. A session bean can also implement multiple interfaces.
+A remote interface must extend from javax.ejb.EJBObject. The remote interface defines the business methods and must follow RMI-IIOP rules. 
+The rules of RMI-IIOP are simple: the method must throw java.rmi.RemoteException, all the input parameters must be serializable, and the return value must be serializable.
+b.	A home interface for a stateless session bean must contain a create() method with no parameters to instantiate the EJB in the container.
+The bean implementation class must be public and must implement the javax.ejb.SessionBean interface, and you have to implement all the lifecycle methods of the javax.ejb.SessionBean interface.
+In EJB 2.x, the deployment descriptor files are XML files that define the behavior of one or more EJBs. The EJB will have a minimum of two deployment descriptors:
+•	ejb-jar.xml: Required by all EJBs; has been standardized by the EJB specification.
+•	xxx.xml: A vendor-specific deployment descriptor used to define the behavior of the container. This is not portable.
+•	Stateless Session Beans in EJB3.0
+In EJB 3.0, a session bean is a plain JavaBean, also known as a POJO (Plain Old Java Object) handled by the EJB container.
+ In EJB 3.0 session beans, metadata annotations are used to specify thebean type: stateless or stateful. 
+There is no concept of remote and home interfaces, and only one interface is defined: the "business interface," which is a POJI (Plain Old Java Interface). Whether this interface is local or remote can also be indicated by annotations.
+Interfaces are required for Session beans. For entity beans they are optional. 
+If there is no business interface defined for session bean, the EJB container generates a business interface by default. The type is dependent upon the annotation being used on bean class. All the public methods of the bean class will be included as a part of automatically generated business interface.
+Session beans do not require any HOME interface.
+Business Interface
+The business interfaces are annotated using @Remote and @Local annotations. Note that the
+@Remote annotation lets the container know that the bean will be accessed by remote clients and the @Local annotation lets the container know that the bean will be accessed by local clients. The business interface is a local interface unless it is annotated with the @Remote annotation.
+The business interface looks pretty simple; there is no need to put a "throws RemoteException" on every method.
+Bean Implementation Class
+The bean implementation class in EJB 3.0 is a POJO. This class uses annotations to define the type of the session bean—stateless or stateful. This class should implement the business interface (if defined already) or specify the annotation @Local with the name of the local business interface class to be generated.
+Now, the ejb callback methods need not be written in the bean implementation class, making the coding simpler and easier. The bean class no longer implements the javax.ejb.SessionBean interface. Instead, the bean class implements the business interface.
+Deployment descriptor in EJB 3.x:
+In EJB 3.0, the deployment descriptor is optional and is no longer required. The information that goes into the deployment descriptor is now inferred by the container using annotations provided in the bean implementation class. 
+Deployment descriptors may still be used if there is a need to override the annotations.
+ejb Callback Methods
+With EJB 3.0, the bean implementation class no longer needs to implement all the lifecycle callback methods of the javax.ejb.SessionBean interface. Any callback method has to be
+annotated with one of the pre-defined lifecycle event callback annotations.
+
+
+
+•	iVision Implementation (EJB2.x):
+In iVision, we have made used of simplified EJB2.0 specifications. Below code sample you must be familiar in iVision.
+Remote Interface:
+Class: BackendInterfaceSession.java
+Code snippet: 
+public interface BackendInterfaceSession extends javax.ejb.EJBObject {
+
+void performForwardContractsEarmark(
+		UserContext userContext,
+		Vector forwardContracts)
+		throws IVisionException, RemoteException;
+}
+Home Interface:
+Class: BackendInterfaceSessionHome.java
+Code snippet:
+public interface BackendInterfaceSessionHome extends javax.ejb.EJBHome {
+
+com.bnp.ivision.product.common.sessionejb.BackendInterfaceSession create() throws javax.ejb.CreateException, java.rmi.RemoteException;
+
+}
+Bean Implementation:
+Class: BackendInterfaceSessionBean.java
+Code snippet:
+public class BackendInterfaceSessionBean implements SessionBean {
+
+public void performForwardContractsEarmark(
+		UserContext userContext,
+		Vector forwardContracts)throws IVisionException { }
+}
+Deployment descriptor in EJB 2.x: 
+META-INF\ejb-jar.xml
+<session id="BackendInterfaceSession">
+	<ejb-name>BackendInterfaceSession</ejb-name>
+	<home>com.bnp.ivision.product.common.sessionejb.BackendInterfaceSessi
+            onHome</home>
+	<remote>com.bnp.ivision.product.common.sessionejb.BackendInterfaceSes  
+            sion</remote>
+	<ejb-class> 
+      com.bnp.ivision.product.common.sessionejb.BackendInterfaceSessionBean   
+      </ejb-class>
+	<session-type>Stateless</session-type>
+	<transaction-type>Container</transaction-type>
+	<ejb-ref id="EjbRef_1173795821131">
+		<description></description>
+		<ejb-ref-name>BackendInterfaceSession</ejb-ref-name>
+		<ejb-ref-type>Session</ejb-ref-type>
+<home> com.bnp.ivision.product.common.sessionejb.BackendInterfaceSessionHome </home>
+<remote> com.bnp.ivision.product.common.sessionejb.BackendInterfaceSession</remote>
+		<ejb-link>BackendInterfaceSession</ejb-link>
+	</ejb-ref>
+</session> 
+META-INF\ibm-ejb-jar-bnd.xml
+<ejbBindings xmi:id="EnterpriseBeanBinding_1173795783552" jndiName="BackendInterfaceSession">
+    <enterpriseBean xmi:type="ejb:Session" href="META-INF/ejb-jar.xml#BackendInterfaceSession"/>
+    <ejbRefBindings xmi:id="EjbRefBinding_1173795821131" jndiName="BackendInterfaceSession">
+      <bindingEjbRef href="META-INF/ejb-jar.xml#EjbRef_1173795821131"/>
+    </ejbRefBindings>
+</ejbBindings>
+
+•	iVision proposed Implementation (EJB3.0):
+Business Interface
+Class: ELCSession.java
+Code snippet: 
+@Remote
+public interface BackendInterfaceSession{ 
+
+void performForwardContractsEarmark(UserContext userContext,
+			Vector<Object> forwardContracts) throws IVisionException;
+
+}
+Bean Implementation:
+Class: BackendInterfaceSessionBean.java
+Code snippet:
+@Stateless
+@Remote(BackendInterfaceSession.class)
+@TransactionAttribute(TransactionAttributeType.SUPPORTS)
+public class BackendInterfaceSessionBean implements BackendInterfaceSession {
+public void performForwardContractsEarmark(UserContext userContext,
+			Vector forwardContracts) throws IVisionException { }
+}
+
+•	Migrating Stateful Session Beans
+•	Stateful Session Beans in EJB2.x
+In the EJB 2.x specification, the primary difference between the stateless and stateful session beans is in their deployment descriptors.
+•	Stateful Session Beans in EJB3.0
+The business interface of a stateful session bean in EJB 3.0 is also a POJI similar to that of the stateless session bean. The bean implementation class in EJB 3.0 uses annotations to define the type of the session bean--stateless or stateful. This class should implement the business interface (if defined already) or specify the annotation @Local with the name of the local business interface class to be generated. 
+A stateful session bean must be annotated with the @Stateful annotation.
+The @Remove annotation denotes a lifecycle method of a stateful session bean. This method would be called when the client application calls the remove method. This annotation is applicable for stateful session beans only.
+•	iVision Implementation (EJB2.x):
+Remote Interface:
+Class: ELCSession.java
+Code snippet: 
+public interface ELCSession extends javax.ejb.EJBObject {
+
+com.bnp.ivision.common.BusinessResponse control(com.bnp.ivision.common.BusinessRequest arg1) throws com.bnp.ivision.common.IVisionException, java.rmi.RemoteException;
+
+}
+
+
+
+
+
+
+
+
+
+Home Interface:
+Class: ELCSessionHome.java
+Code snippet:
+public interface ELCSessionHome extends javax.ejb.EJBHome {
+
+com.bnp.ivision.product.elc.sessionejb.ELCSession create() 
+throws javax.ejb.CreateException, java.rmi.RemoteException;
+
+}
+Bean Implementation:
+Class: ELCSessionBean.java
+Code snippet:
+public class ELCSessionBean
+	extends ProductSessionBean implements SessionBean {
+
+public BusinessResponse control(BusinessRequest businessRequest)
+		throws IVisionException { }
+}
+Deployment descriptor in EJB 2.x: 
+META-INF\ejb-jar.xml
+<session id="ELCSession">
+	<ejb-name>ELCSession</ejb-name>
+	<home>com.bnp.ivision.product.elc.sessionejb.ELCSessionHome</home>
+	<remote>com.bnp.ivision.product.elc.sessionejb.ELCSession</remote>
+<ejb-lass>com.bnp.ivision.product.elc.sessionejb.ELCSessionBean</ejb-class>
+	<session-type>Stateful</session-type>
+	<transaction-type>Container</transaction-type>
+	<ejb-ref id="EjbRef_1174910074175">
+		<description></description>
+		<ejb-ref-name>ELCSession</ejb-ref-name>
+		<ejb-ref-type>Session</ejb-ref-type>
+	      <home> com.bnp.ivision.product.elc.sessionejb.ELCSessionHome      
+            </home>
+<remote>com.bnp.ivision.product.elc.sessionejb.ELCSession </remote>
+		<ejb-link>ELCSession</ejb-link>
+		</ejb-ref>
+</session>
+META-INF\ibm-ejb-jar-bnd.xml
+<ejbBindings xmi:id="EnterpriseBeanBinding_1174909981219"  
+jndiName="ELCSession">
+<enterpriseBean xmi:type="ejb:Session" href="META-INF/ejb-jar.xml#ELCSession"/>
+<ejbRefBindings xmi:id="EjbRefBinding_1174910074175" jndiName="ELCSession">
+      <bindingEjbRef href="META-INF/ejb-jar.xml#EjbRef_1174910074175"/>
+    </ejbRefBindings>
+  </ejbBindings>
+
+•	iVision proposed Implementation (EJB3.x):
+Business Interface
+Class: ELCSession.java
+Code snippet: 
+@Remote
+public interface ELCSession extends ProductMarkerSession{
+com.bnp.ivision.common.BusinessResponse control(com.bnp.ivision.common.BusinessRequest arg1) throws com.bnp.ivision.common.IVisionException;
+}
+Note: ProductMarkerSession.java is a marker interface created to replace Handle (javax.ejb). Existing iVisin EJB 2.x code is tightly coupled with respect to pass on the obtained EJB Handle across multiple clients.
+Bean Implementation:
+Class: ELCSessionBean.java
+Code snippet:
+@Stateful
+@Remote(ELCSession.class)
+public class ELCSessionBean
+	extends ProductSessionBean
+	implements ELCSession {
+public BusinessResponse control(BusinessRequest businessRequest)
+		throws IVisionException { }
+}
+•	Migrating Session Bean Clients
+•	Session Bean Clients in EJB2.x
+In EJB 2.x, a client for a session bean obtains a session object using a JNDI name. The Client obtains a local home object using JNDI look up (using JNDI name) and then calls create method.
+If a bean is acting as a client for another enterprise bean, then the reference of the bean must be specified in the deployment descriptor using and tags.
+•	Session Bean Clients in EJB 3.0
+EJB 3.0 addresses the encapsulation of environmental dependencies and JNDI access through the use of annotations, dependency injection mechanisms, and simple lookup mechanisms.
+Injection of resources or references can occur through either annotation of the injection target or specification of the target in the deployment descriptor file.
+Application clients in EJB 3.0 refer to enterprise bean instances by annotating static fields with the @EJB annotation. The annotated static field represents the enterprise bean's business interface, which gets resolved to the session bean instance when the application client container injects the resource references at runtime.
+Calling a business method is easy. The business method is simply invoked on the injected object.
+For web clients, the code for invoking business method on a bean is similar to that of the application client. However, the dependency injection is not used; i.e., @EJB annotation is not used generally. The business interface class is looked up in the JNDI context.
+•	iVision Implementation (EJB2.x):
+EJB Client (Code Snippet):
+TechnicalSessionHome technicalHome =
+	        (TechnicalSessionHome) EJBHomesCache.getHome("TechnicalSession");
+TechnicalSession technicalSession = null;
+try {
+	technicalSession = (TechnicalSession) technicalHome.create();
+	Handle sessionEjbHandle = technicalSession.getHandle();
+response = technicalSession.xmlBankRetrievalFromAccountN(brEntry, localType);
+	technicalSession.remove();
+} catch (RemoteException e) {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+} catch (CreateException e) {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+} catch (RemoveException e) {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+}
+•	iVision Implementation (EJB3.x):
+TechnicalSession technicalSession = null;
+technicalSession = (TechnicalSession) 
+ EJBHomesCache.getHome(TechnicalSession.class);
+response = technicalSession.checkPendingConsentEjbFunc(refId, prod_code, brch_code);
+
+•	Global Changes:
+1.	JNDI Lookup Concept:
+a.	In iVision EJB2.x, after performing JNDI lookup, the EJB reference is cached in a hashtable for the transaction.
+getCache().ejbHomes.put(name.toString(), tempHome);
+With iVision EJB3.0, the JNDI lookup is performed in the traditional JNDI lookup way. However, the bean reference is not cached. Everytime, a bean is required; it’s looked up via JNDI.
+b.	In iVision EJB2.x, JNDI lookup is performed using JNDI name. 
+With EJB3.x, the bean is looked up using the fully classified class name.   
+Object tempTest = jndiContext.lookup ("com.bnp.ivision.product.common.sessionejb.LockSession");
+2.	For xml based transaction management setup (refer ejb-jar.xml in iVision EJB2.x) has been removed. 
+In EJB3.0, the setup is performed using annotations as mentioned below:
+@TransactionAttribute(TransactionAttributeType.SUPPORTS) over bean class
+@TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)  over methods
+3.	Dependent EJB stateless beans are injected using @EJB annotation.
+	@EJB
+private BackendInterfaceSession backendInterfaceSession; 
+No exclusive JNDI lookups required.
+4.	Marker Interface created to replace javax.ejb.Handle. A reference of it is used across application to hold the EJB reference.
+5.	All the RemoteException / CreateException / RemoveException have been removed in EJB3.0 code.
+6.	Bean implementations will not have ejb Callback methods. 
+ejbCreate() / ejbActivate() / ejbPassivate() / ejbRemove() are not required in EJB3.0. The lifecycle methods are internally managed by container for EJB3.0. 
+For stateful beans, ejbRemove() method can be implemented using @Remove annotation. The method to be used for performing clean up activity is to be annotated with @Remove. 
+It has to be called by the developer (refer removeEJBObject () method in EJB2.x)
